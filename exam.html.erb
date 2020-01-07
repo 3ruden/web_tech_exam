@@ -1,0 +1,36 @@
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  </head>
+  <body>
+    <% require 'pg' %>
+    <% require './quality_check' %>
+    <% require 'byebug' %>
+    <% connection = PG::connect(dbname: "goya") %>
+    <% connection.internal_encoding = "UTF-8" %>
+
+    <% not_self = connection.exec("select * from crops where not give_for = '自家消費';") %>
+    <% bad_quality = connection.exec("select * from crops where quality = false;") %>
+    <% not_self_data = [] %>
+    <% bad_quality_data = [] %>
+
+    <% not_self.each do |record| %>
+      <% quality = quality_check(record["quality"]) %>
+      <% not_self_data << "ゴーヤの長さ:#{record["length"]} ゴーヤの大きさ:#{record["weight"]} ゴーヤの品質:#{quality} 売った相手:#{record["give_for"]} 売った日付:#{record["date"]}<br>" %>
+    <% end %>
+
+    <% bad_quality.each do |record| %>
+      <% quality = quality_check(record["quality"]) %>
+      <% bad_quality_data << "ゴーヤの長さ:#{record["length"]} ゴーヤの大きさ:#{record["weight"]} ゴーヤの品質:#{quality} 売った相手:#{record["give_for"]} 売った日付:#{record["date"]}<br>" %>
+    <% end %>
+
+    <form action="not_self.cgi" method="POST">
+      <input type="hidden" name="not_self" value="<%= not_self_data.join(' ') %>">
+      <input type="submit" value="譲渡先が自家消費ではないもののgoyaの情報を載せたページを表示">
+    </form>
+    <form action="bad_quality.cgi" method="POST">
+      <input type="hidden" name="bad_quality" value="<%= bad_quality_data .join(' ') %>">
+      <input type="submit" value="品質が悪いもののgoyaの情報を載せたページを表示">
+    </form>
+  </body>
+</html>
